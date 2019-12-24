@@ -8,18 +8,20 @@ unset TAG
 unset UNBUNDLE
 unset IMAGELIST
 unset IMAGE
+USTMPDIR="/tmp"
 
-USAGE="Usage: $(basename $0) [-hr] [-l imagelist | -i image] [-d bundle.tar] [-t newtag] [-u unbundle.tar]"
+USAGE="Usage: $(basename $0) [-hr] [-l imagelist | -i image] [-d bundle.tar] [-t newtag] [-p tmpdir] [-u unbundle.tar]"
 HELP="
 -d bundle.tar - download container images and bundle them in a single tar file\n
 -h - help\n
 -i image - name of image to download\n
 -l imagelist - name of file that contains the list of images to download\n
+-p tmpdir\n
 -t newtag - retag images\n
 -u unbundle.tar - unbundle tar and load in container registry
 "
 
-while getopts d:hi:l:rt:u: c
+while getopts d:hi:l:p:rt:u: c
 do
 	case $c in
 	d) DOWNLOAD=${OPTARG};;
@@ -27,8 +29,11 @@ do
 	i) IMAGE=${OPTARG};;
 	l) IMAGELIST=${OPTARG};;
 	r) RETAIN="true";;
+	p) USTMPDIR=${OPTARG};;
 	t) TAG=${OPTARG};;
 	u) UNBUNDLE=${OPTARG};;
+	\?)	echo "${USAGE}"
+		exit 2;;
 	esac
 done
 shift `expr $OPTIND - 1`
@@ -61,7 +66,7 @@ elif [ -n "${IMAGELIST}" ];then
 fi
 
 if [ -n "${DOWNLOAD}" ];then
-	TMPDIR=$(mktemp -d --suffix=update_image)
+	TMPDIR=$(mktemp -p ${USTMPDIR} -d --suffix=update_image)
 	for image in ${NEEDED_IMAGES};do
 		docker pull ${image}
 		if [ $? -ne 0 ];then

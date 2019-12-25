@@ -5,7 +5,7 @@ if [ $# -ne 1 ];then
 	exit 2
 fi
 
-for image in $(docker images | awk '!/NAME/{print $1":"$2}');do
+for image in $(docker images | awk '!/^REPOSITORY/{print $1":"$2}');do
 	if [[ ${image} =~ / ]];then
 		docker tag ${image} $(echo $image | sed "s/[^/]*/$1/")
 	else

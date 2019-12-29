@@ -24,10 +24,16 @@ if [ -z "${TAG}" ];then
 	exit 2
 fi
 
-if [ -z "${IMAGELIST}" ];then
-	IMAGELIST=$(docker images | awk '!/^REPOSITORY/{print $1":"$2}')
+if [ -n "${IMAGELIST}" ];then
+	if [ ! -f "${IMAGELIST}" ];then
+		echo "${PROGNAME}: unable to find ${IMAGELIST}"
+		exit 1
+	fi
+	IMAGES=$(cat "${IMAGELIST}")
+else
+	IMAGES=$(docker images | awk '!/^REPOSITORY/{print $1":"$2}')
 fi
-for image in ${IMAGELIST};do
+for image in ${IMAGES};do
 	if [[ ${image} =~ / ]];then
 		NEWNAME=$(echo "$image" | sed "s/[^/]*/${TAG}/")
 	else

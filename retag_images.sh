@@ -1,14 +1,16 @@
 #!/bin/bash
 
 PROGNAME=$(basename "$0")
-USAGE="Usage: ${PROGNAME} [-p] [-l imagelist] -t tag"
+USAGE="Usage: ${PROGNAME} [-pg] [-l imagelist] -t tag"
 unset PUSH
 unset TAG
+unset GREEDY
 unset IMAGELIST
 
-while getopts l:pt: c
+while getopts gl:pt: c
 do
 	case $c in
+	g)	GREEDY="true";;
 	l)	IMAGELIST=$OPTARG;;
 	p)	PUSH="true";;
 	t)	TAG=$OPTARG;;
@@ -35,7 +37,11 @@ else
 fi
 for image in ${IMAGES};do
 	if [[ ${image} =~ / ]];then
-		NEWNAME=$(echo "$image" | sed "s/[^/]*/${TAG}/")
+		if [ -n "${GREEDY}" ];then
+			NEWNAME=${image/*\//${TAG}/}
+		else
+			NEWNAME=$(echo "$image" | sed "s/[^/]*/${TAG}/")
+		fi
 	else
 		NEWNAME="${TAG}/${image}"
 	fi

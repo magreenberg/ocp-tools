@@ -1,13 +1,15 @@
 #!/bin/bash
 
 PROGNAME=$(basename "$0")
-USAGE="Usage: ${PROGNAME} [-p] -t tag"
+USAGE="Usage: ${PROGNAME} [-p] [-l imagelist] -t tag"
 unset PUSH
 unset TAG
+unset IMAGELIST
 
-while getopts pt: c
+while getopts l:pt: c
 do
 	case $c in
+	l)	IMAGELIST=$OPTARG;;
 	p)	PUSH="true";;
 	t)	TAG=$OPTARG;;
 	\?)	echo "${USAGE}"
@@ -22,6 +24,9 @@ if [ -z "${TAG}" ];then
 	exit 2
 fi
 
+if [ -z "${IMAGELIST}" ];then
+	IMAGELIST=$(docker images)
+fi
 for image in $(docker images | awk '!/^REPOSITORY/{print $1":"$2}');do
 	if [[ ${image} =~ / ]];then
 		NEWNAME=$(echo "$image" | sed "s/[^/]*/${TAG}/")

@@ -25,9 +25,9 @@ if [ -z "${TAG}" ];then
 fi
 
 if [ -z "${IMAGELIST}" ];then
-	IMAGELIST=$(docker images)
+	IMAGELIST=$(docker images | awk '!/^REPOSITORY/{print $1":"$2}')
 fi
-for image in $(docker images | awk '!/^REPOSITORY/{print $1":"$2}');do
+for image in ${IMAGELIST};do
 	if [[ ${image} =~ / ]];then
 		NEWNAME=$(echo "$image" | sed "s/[^/]*/${TAG}/")
 	else

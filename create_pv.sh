@@ -51,7 +51,7 @@ for pv in $(seq "${FROM}" "${TO}");do
 		pvname=$(printf "pv%03d" "${pv}")
 	fi
 
-	${CLI} create -f - <<EOF
+	if ! ${CLI} create -f - <<EOF
 apiVersion: "v1"
 kind: PersistentVolume
 metadata:
@@ -67,4 +67,8 @@ spec:
     type: DirectoryOrCreate
     path: "/mnt/${pvname}"
 EOF
+	then
+		echo "${PROGNAME}: failed to create pv"
+		exit 1
+	fi
 done

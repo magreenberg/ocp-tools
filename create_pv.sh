@@ -2,7 +2,9 @@
 
 PROGNAME=$(basename "${0}")
 
-USAGE="Usage: ${PROGNAME} [-h] [-a accessmodes] [-C cli] [-c storageclass] [-f from] [-n name] [-s size] [-t to]"
+# Samples:
+# ./create_pv.sh -f 1 -t 3 -s 5Gi -r /srv/nfs -S master.mg.local
+USAGE="Usage: ${PROGNAME} [-h] [-a accessmodes] [-C cli] [-c storageclass] [-f from] [-n name] [-r root] [-S nfs-server] [-s size] [-t to]"
 unset TO
 unset STORAGECLASS
 
@@ -11,18 +13,25 @@ FROM="1"
 unset NAME
 SIZE="1Gi"
 ACCESSMODE_ARG="ReadWriteOnce"
+unset SERVER
 
-while getopts a:C:c:f:hn:t:s: c
+VOLUME_TYPE="hostPath"
+MOUNT_TYPE="type: DirectoryOrCreate"
+MOUNT_ROOT="/mnt"
+
+while getopts a:C:c:f:hn:r:S:s:t: c
 do
 	case $c in
-	a) ACCESSMODE_ARG=${OPTARG};;
-	C) CLI=${OPTARG};;
+	a) ACCESSMODE_ARG="${OPTARG}";;
+	C) CLI="${OPTARG}";;
 	c) STORAGECLASS="storageClassName: ${OPTARG}";;
-	f) FROM=${OPTARG};;
+	f) FROM="${OPTARG}";;
 	h) echo "${USAGE}";exit 0;;
-	n) NAME=${OPTARG};;
-	t) TO=${OPTARG};;
-	s) SIZE=${OPTARG};;
+	n) NAME="${OPTARG}";;
+	t) TO="${OPTARG}";;
+	r) MOUNT_ROOT="${OPTARG}";;
+	S) VOLUME_TYPE="nfs";MOUNT_TYPE="server: ${OPTARG}";;
+	s) SIZE="${OPTARG}";;
 	\?)	echo "${USAGE}"
 		exit 2;;
 	esac
@@ -62,13 +71,17 @@ spec:
     storage: ${SIZE}
   accessModes: ${ACCESSMODES}
   persistentVolumeReclaimPolicy: Recycle
-  hostPath:
+  ${VOLUME_TYPE}:
 # may need selinux enforcement disabled
-    type: DirectoryOrCreate
-    path: "/mnt/${pvname}"
+    ${MOUNT_TYPE}
+    path: "${MOUNT_ROOT}/${pvname}"
 EOF
 	then
 		echo "${PROGNAME}: failed to create pv"
 		exit 1
 	fi
-done
+	if [ "${VOLUME_TYPE}" = "nfs" ];then
+		# shellcheck disable=SC2029
+		ssh root@"${MOUNT_TYPE/* /}" "mkdir -p ${MOUNT_ROOT}/${pvname} && chmod 777 ${MOUNT_ROOT}/${pvname} && chown nfsnobody:nfsnobody ${MOUNT_ROOT}/${pvname}"
+	fi
+	done

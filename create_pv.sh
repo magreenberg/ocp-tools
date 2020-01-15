@@ -84,4 +84,4 @@ EOF
 		# shellcheck disable=SC2029
 		ssh root@"${MOUNT_TYPE/* /}" "mkdir -p ${MOUNT_ROOT}/${pvname} && chmod 777 ${MOUNT_ROOT}/${pvname} && chown nfsnobody:nfsnobody ${MOUNT_ROOT}/${pvname}"
 	fi
-	done
+done

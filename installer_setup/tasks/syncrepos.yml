@@ -1,0 +1,55 @@
+---
+- hosts: rhdownloadhost
+  tasks:
+
+    - name: install support packages
+      package:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - yum-utils
+        - createrepo
+
+
+    - name: Creates directory
+      file:
+        path: "{{ repodir }}"
+        state: directory
+
+    - name: create a local copy of the repositories
+      shell: >
+          reposync --gpgcheck -lm --repoid={{ item }} --download_path={{ repodir }} --newest-only &&
+          createrepo -v {{ repodir }}/{{ item }} -o {{ repodir }}/{{ item }}
+      with_items:
+        - rhel-7-server-rpms
+        - rhel-7-server-extras-rpms
+        - rhel-7-server-ansible-2.6-rpms
+        - rhel-7-server-ose-3.11-rpms
+
+    - name: create a local copy of the glusterfs repositories
+      shell: >
+          reposync --gpgcheck -lm --repoid={{ item }} --download_path={{ repodir }} --newest-only &&
+          createrepo -v {{ repodir }}/{{ item }} -o {{ repodir }}/{{ item }}
+      with_items:
+        - rh-gluster-3-for-rhel-7-server-rpms
+      when: (use_glusterfs is defined) and (use_glusterfs | bool == True)
+
+    - name: Fix file permissions
+      file:
+        dest="{{ repodir }}"
+        mode="o=rX"
+        recurse="yes"
+
+    - name: Apply selinux permissions
+      command: restorecon -vR "{{ repodir }}"
+
+    - name: Create tar file of repository to be manually moved inside the target network (disconnected mode only)
+      archive:
+        path: "{{ repodir }}"
+        dest: "{{ repobundle }}"
+      when: disconnected_mode | bool
+
+    - name: Notify user of repo file to move inside the target network (disconnected mode only)
+      debug:
+        msg: Manually copy the file "{{ repobundle }}" to the YUM server within the target network.
+      when: disconnected_mode | bool

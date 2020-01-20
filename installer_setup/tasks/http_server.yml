@@ -1,0 +1,33 @@
+---
+- hosts: reporeghost
+  tasks:
+
+    - name: install support packages
+      package:
+        name: "{{item}}"
+        state: present
+      with_items:
+       - httpd
+
+    - name: Configure the firewall for http
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+
+    - name: Configure the firewall https
+      firewalld:
+        service: https
+        permanent: yes
+        state: enabled
+
+    - name: enable service httpd and ensure it is not masked
+      systemd:
+        name: httpd
+        enabled: yes
+        masked: no
+
+    - name: Make sure a service is running
+      systemd:
+        state: started
+        name: httpd

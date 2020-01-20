@@ -1,0 +1,54 @@
+---
+- hosts: reporeghost
+  tasks:
+
+    - name: install support packages
+      package:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - docker-distribution
+        - python-passlib
+
+    - name: Configure the firewall for docker
+      firewalld:
+        port: 5000/tcp
+        permanent: true
+        state: enabled
+
+    - name: Create directory for authentication file
+      file:
+        path: /etc/docker-distribution/auth
+        state: directory
+        mode: '0700'
+
+    - name: Create a password file
+      command: htpasswd -b -B -c /etc/docker-distribution/auth/passwdfile admin admin
+#      htpasswd:
+#        path: /etc/docker-distribution/auth/passwdfile
+#        name: admin
+#        password: 'admin'
+#        crypt_scheme: bcrypt
+#        mode: 0600
+#
+#        add task to add host as insecure registry
+
+    - name: Add authentication to docker-distribution
+      blockinfile:
+        path: /etc/docker-distribution/registry/config.yml
+        block: |
+          auth:
+              htpasswd:
+                  realm: basic-realm
+                  path: /etc/docker-distribution/auth/passwdfile
+
+    - name: enable service docker and ensure it is not masked
+      systemd:
+        name: docker-distribution
+        enabled: true
+        masked: false
+
+    - name: Start the docker-distribution service
+      systemd:
+        state: started
+        name: docker-distribution

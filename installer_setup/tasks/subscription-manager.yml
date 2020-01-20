@@ -1,0 +1,71 @@
+---
+- hosts: rhdownloadhost
+  vars_prompt:
+    - name: username
+      prompt: "Enter your Red Hat user account"
+      private: false
+    - name: password
+      prompt: "Enter your Red Hat user account password"
+    - name: poolid
+      prompt: >-
+        Enter the Red Hat subscription manager pool ID
+        (eg.  8a85f99a6b498873016b9427237f77f9)
+      private: false
+
+  tasks:
+    - name: Register subscribe to needed repositories
+      redhat_subscription:
+        state: present
+        username: "{{ username }}"
+        password: "{{ password }}"
+        pool_ids: "{{ poolid }}"
+      register: loginrhel
+
+
+    - name: Disable all RHSM repositories
+      rhsm_repository:
+        name: '*'
+        state: disabled
+      when: "loginrhel.changed == true"
+
+    - name: Enable all relevant OCP repositories
+      rhsm_repository:
+        name:
+          - rhel-7-server-rpms
+          - rhel-7-server-extras-rpms
+          - rhel-7-server-ose-3.11-rpms
+          - rhel-7-server-ansible-2.6-rpms
+        state: enabled
+      when: "loginrhel.changed == true"
+
+    - name: Enable gluster repo if needed
+      rhsm_repository:
+        name:
+          - rh-gluster-3-for-rhel-7-server-rpms
+        state: enabled
+      when: (use_glusterfs is defined) and (use_glusterfs | bool == True)
+
+    - name: install support packages need by Docker login below
+      package:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - docker
+        - python-docker
+
+    - name: enable docker service and ensure it is not masked
+      systemd:
+        name: docker
+        enabled: true
+        masked: false
+
+    - name: Start the docker service
+      systemd:
+        state: started
+        name: docker
+
+    - name: log in to Docker registry
+      docker_login:
+        registry: "registry.redhat.io"
+        username: "{{ username }}"
+        password: "{{ password }}"

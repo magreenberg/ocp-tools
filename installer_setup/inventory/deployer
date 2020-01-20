@@ -1,0 +1,19 @@
+[all:vars]
+# set the following to true for disconnected installation
+disconnected_mode=false
+use_glusterfs=true
+openshift_image_tag=v3.11.161
+
+# user and directories for host that serves as the yum repository and registry
+ansible_user=root
+repodir=/var/www/html/repos
+# the following is relevant for disconnected mode.
+# It is the yum bundle that needs to be manually installed within the corporation's network
+#repobundle=/tmp/ocp_repos.tgz
+
+[rhdownloadhost]
+deployer
+
+# hostname of the host that will download the repository
+[reporeghost]
+deployer
